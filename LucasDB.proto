@@ -1,0 +1,14 @@
+syntax = "proto3";
+  
+package lucasdb;
+
+message DBRequest {
+   int32 op = 1;
+   int64 key1 = 2;
+   int64 key2 = 3;
+}
+  
+message DBReply {
+    repeated uint32 values = 3;
+    bool result = 4;
+}
