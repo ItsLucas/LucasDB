@@ -4,6 +4,7 @@
 #define OP_GET 3
 #define OP_RANGE 4
 #define OP_SAVEALL 5
+#define OP_RANDINIT 6
 #define OP_ERROR 255
 
 #include <string>

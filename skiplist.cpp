@@ -42,7 +42,22 @@ void do_get(int64_t key1, DBReply &reply) {
         reply.set_result(false);
     }
 }
+using namespace std::chrono;
+void slap_db(int64_t sz, unsigned int seed) {
+    srand(seed);
+    printf("Begin slapping database with %ld entries\n", sz);
+    auto start = high_resolution_clock::now();
+    for (int i = 1; i <= sz; i++) {
+        skipList.insert(i, rand());
+    }
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
 
+    // To get the value of duration use the count()
+    // member function on the duration object
+    printf("slap completed, time elapsed: %ldms, QPS: %lf/s\n",
+           duration.count(), (double)sz / (double)duration.count() * 1000);
+}
 vector<uint32_t> do_range(int64_t key1, int64_t key2) {
     return skipList.range(key1, key2);
 }
@@ -142,6 +157,11 @@ class EchoInstance {
                 for (auto &i : do_range(req.key1(), req.key2())) {
                     reply.add_values(i);
                 }
+                break;
+            }
+            case OP_RANDINIT: {
+                reply.set_result(true);
+                slap_db(req.key1(), req.key2());
                 break;
             }
             case OP_ERROR: {

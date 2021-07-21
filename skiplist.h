@@ -56,7 +56,7 @@ Node<K, V> *SkipList<K, V>::alloc(const K k, const V v, int level) {
 template <typename K, typename V>
 bool SkipList<K, V>::insert(const K key, const V value) {
     // cout << "Inserting" << key << " " << value << endl;
-    // mtx.lock();
+    mtx.lock();
     Node<K, V> *current = this->head;
     Node<K, V> *update[max_level + 1];
     memset(update, 0, sizeof(Node<K, V> *) * (max_level + 1));
@@ -72,7 +72,7 @@ bool SkipList<K, V>::insert(const K key, const V value) {
     current = current->forward[0];
 
     if (current != NULL && current->get_key() == key) {
-        // mtx.unlock();
+        mtx.unlock();
         return false;
     }
 
@@ -94,7 +94,7 @@ bool SkipList<K, V>::insert(const K key, const V value) {
         }
         count++;
     }
-    // mtx.unlock();
+    mtx.unlock();
     return true;
 }
 
