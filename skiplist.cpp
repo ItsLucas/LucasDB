@@ -15,7 +15,7 @@
 //                                 into async pieces
 //
 using namespace SL;
-SkipList<int64_t, uint32_t> skipList(25);
+SkipList<int64_t, uint32_t> skipList(25, false);
 using namespace lucasdb;
 
 //

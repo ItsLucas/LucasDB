@@ -3,5 +3,5 @@ CC_FLAGS = -O3 -Wall -I../include -pthread -ltcmalloc_minimal -fno-builtin-mallo
 FLAGS += $(CC_FLAGS) $(LD_FLAGS)
 
 all:
-	g++ $(FLAGS) LucasDB.pb.cc skiplist.cpp -o skiplist 
+	g++ $(FLAGS) bpt.cc LucasDB.pb.cc skiplist.cpp -o skiplist 
 	g++ $(FLAGS) LucasDB.pb.cc client.cpp -o client

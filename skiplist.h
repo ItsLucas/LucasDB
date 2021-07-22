@@ -1,49 +1,64 @@
 #ifndef SKIPLIST_H
 #define SKIPLIST_H
+#include "bpt.h"
 #include "node.h"
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <mutex>
+#include <thread>
+#include <unordered_map>
 #include <vector>
 #define STORE_FILE "mdump"
+#define MAX_RECORD_COUNT 70000000
 using namespace std;
+using namespace bpt;
 namespace SL {
 
 template <typename K, typename V> class SkipList {
   public:
-    SkipList(int);
+    SkipList(int, bool);
     ~SkipList();
     int toll();
+
     Node<K, V> *alloc(K, V, int);
     bool insert(K, V);
     void print();
     int search(K);
     bool remove(K);
     bool update(K, V);
-    void unmap();
-    void map();
+    void unload();
+    void unload(K);
+    void unload(K, K);
+    void load();
+    void load(K);
+    void load(K, K);
     int size();
     vector<V> range(K, K);
 
   private:
     void _format(const std::string &str, std::string *key, std::string *value);
     bool _check(const std::string &str);
+    int _search(K);
+    void mark_unload(K);
+    void mark_load(K);
 
   private:
     int max_level;
-
     int current_level;
-
+    bool flag_storage;
     Node<K, V> *head;
-
+    bplus_tree *storage;
     std::ofstream out;
     std::ifstream in;
-
+    list<K> lru;
+    unordered_map<K, bool> storage_map;
     int count;
     std::mutex mtx;
+    std::mutex mtx2;
     std::string delimiter = ":";
 };
 
@@ -57,6 +72,21 @@ template <typename K, typename V>
 bool SkipList<K, V>::insert(const K key, const V value) {
     // cout << "Inserting" << key << " " << value << endl;
     mtx.lock();
+    if (this->count > MAX_RECORD_COUNT) {
+        if (flag_storage) { // persistant the record
+            // cout << "Limit exceeded, unloading key " << lru.back() << endl;
+            mtx2.lock();
+            mtx.unlock();
+            unload(lru.back());
+            mtx.lock();
+            lru.pop_back();
+            mtx2.unlock();
+            // count--;
+        } else {
+            mtx.unlock();
+            return false;
+        }
+    }
     Node<K, V> *current = this->head;
     Node<K, V> *update[max_level + 1];
     memset(update, 0, sizeof(Node<K, V> *) * (max_level + 1));
@@ -93,6 +123,8 @@ bool SkipList<K, V>::insert(const K key, const V value) {
             update[i]->forward[i] = inserted_node;
         }
         count++;
+        if (flag_storage)
+            lru.push_front(key);
     }
     mtx.unlock();
     return true;
@@ -110,7 +142,7 @@ template <typename K, typename V> void SkipList<K, V>::print() {
     // }
 }
 
-template <typename K, typename V> void SkipList<K, V>::unmap() {
+template <typename K, typename V> void SkipList<K, V>::unload() {
     out.open(STORE_FILE);
     Node<K, V> *node = this->head->forward[0];
 
@@ -124,7 +156,12 @@ template <typename K, typename V> void SkipList<K, V>::unmap() {
     return;
 }
 
-template <typename K, typename V> void SkipList<K, V>::map() {
+template <typename K, typename V> void SkipList<K, V>::unload(K key) {
+    storage->insert(key, this->_search(key));
+    mark_unload(key);
+    storage_map[key] = true;
+}
+template <typename K, typename V> void SkipList<K, V>::load() {
     in.open(STORE_FILE);
     std::string line;
     std::string *key = new std::string();
@@ -138,7 +175,12 @@ template <typename K, typename V> void SkipList<K, V>::map() {
     }
     in.close();
 }
-
+template <typename K, typename V> void SkipList<K, V>::load(K key) {
+    value_t v;
+    if (storage->search(key, &v) != -1) {
+        this->insert(key, v);
+    }
+}
 template <typename K, typename V> int SkipList<K, V>::size() { return count; }
 
 template <typename K, typename V>
@@ -165,6 +207,8 @@ bool SkipList<K, V>::_check(const std::string &str) {
 template <typename K, typename V> bool SkipList<K, V>::remove(K key) {
     bool stat = false;
     mtx.lock();
+    if (flag_storage)
+        storage_map[key] = false;
     Node<K, V> *current = this->head;
     Node<K, V> *update[max_level + 1];
     memset(update, 0, sizeof(Node<K, V> *) * (max_level + 1));
@@ -196,8 +240,8 @@ template <typename K, typename V> bool SkipList<K, V>::remove(K key) {
     mtx.unlock();
     return stat;
 }
+template <typename K, typename V> int SkipList<K, V>::_search(K key) {
 
-template <typename K, typename V> int SkipList<K, V>::search(K key) {
     Node<K, V> *current = head;
 
     for (int i = current_level; i >= 0; i--) {
@@ -213,6 +257,53 @@ template <typename K, typename V> int SkipList<K, V>::search(K key) {
         return current->get_value();
     }
     return -1;
+}
+template <typename K, typename V> int SkipList<K, V>::search(K key) {
+
+    if (flag_storage) {
+        mtx2.lock();
+        lru.push_front(key);
+        mtx2.unlock();
+        if (storage_map[key]) {
+            load(key);
+        }
+    }
+    Node<K, V> *current = head;
+
+    for (int i = current_level; i >= 0; i--) {
+        while (current->forward[i] && current->forward[i]->get_key() < key) {
+            current = current->forward[i];
+        }
+    }
+
+    current = current->forward[0];
+
+    if (current and current->get_key() == key) {
+        // printf("Found value %u in %ld\n", current->get_value(), key);
+        return current->get_value();
+    }
+    return -1;
+}
+
+template <typename K, typename V> void SkipList<K, V>::mark_unload(K key) {
+    remove(key);
+    storage_map[key] = true;
+}
+template <typename K, typename V> void SkipList<K, V>::mark_load(K key) {
+    Node<K, V> *current = head;
+
+    for (int i = current_level; i >= 0; i--) {
+        while (current->forward[i] && current->forward[i]->get_key() < key) {
+            current = current->forward[i];
+        }
+    }
+
+    current = current->forward[0];
+
+    if (current and current->get_key() == key) {
+        // printf("Found value %u in %ld\n", current->get_value(), key);
+        current->unloaded = false;
+    }
 }
 
 template <typename K, typename V> vector<V> SkipList<K, V>::range(K l, K r) {
@@ -237,8 +328,10 @@ template <typename K, typename V> vector<V> SkipList<K, V>::range(K l, K r) {
 }
 
 template <typename K, typename V> bool SkipList<K, V>::update(K key, V value) {
+    mtx.lock();
     Node<K, V> *current = head;
-
+    if (flag_storage)
+        lru.push_front(key);
     for (int i = current_level; i >= 0; i--) {
         while (current->forward[i] && current->forward[i]->get_key() < key) {
             current = current->forward[i];
@@ -249,18 +342,28 @@ template <typename K, typename V> bool SkipList<K, V>::update(K key, V value) {
 
     if (current and current->get_key() == key) {
         current->set_value(value);
+        mtx.unlock();
         return true;
     }
+    mtx.unlock();
     return false;
 }
 
-template <typename K, typename V> SkipList<K, V>::SkipList(int max_level) {
+template <typename K, typename V>
+SkipList<K, V>::SkipList(int max_level, bool enable_storage) {
     this->max_level = max_level;
     this->current_level = 0;
     this->count = 0;
+    this->flag_storage = false;
+    this->lru.clear();
     K k;
     V v;
     this->head = new Node<K, V>(k, v, max_level);
+    if (enable_storage) {
+        cout << "[INFO] Initializing persistant storage" << endl;
+        this->storage = new bplus_tree("lucasdb.idb", true);
+        flag_storage = true;
+    }
 };
 
 template <typename K, typename V> SkipList<K, V>::~SkipList() {
@@ -270,6 +373,7 @@ template <typename K, typename V> SkipList<K, V>::~SkipList() {
     if (in.is_open()) {
         in.close();
     }
+    delete storage;
     delete head;
 }
 

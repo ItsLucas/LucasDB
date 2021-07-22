@@ -101,7 +101,9 @@ void stdin_cb(struct ev_loop *loop, ev_io *w, int revents) {
         scanf("%ld %ld", &b, &c);
         a = OP_RANGE;
     } else if (0 == strcmp(op, "slap")) {
-        scanf("%ld %ld", &b, &c);
+        scanf("%ld", &b);
+        pid_t pid = getpid();
+        c = pid;
         a = OP_RANDINIT;
     } else {
         a = OP_ERROR;

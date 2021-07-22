@@ -22,11 +22,13 @@ template <typename K, typename V> class Node {
   private:
     K key;
     V value;
+    // bool unloaded;
 };
 template <typename K, typename V>
 Node<K, V>::Node(const K k, const V v, int level) {
     this->key = k;
     this->value = v;
+    // this->unloaded = false;
     this->node_level = level;
     this->forward = new Node<K, V> *[level + 1];
     memset(this->forward, 0, sizeof(Node<K, V> *) * (level + 1));
