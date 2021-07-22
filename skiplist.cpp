@@ -10,12 +10,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-//
-//   Buffer class - allow for output buffering such that it can be written out
-//                                 into async pieces
-//
 using namespace SL;
-SkipList<int64_t, uint32_t> skipList(25, false);
+static constexpr bool use_persistant = true;
+SkipList<int64_t, uint32_t> skipList(25, use_persistant);
 using namespace lucasdb;
 
 //
@@ -24,6 +21,12 @@ using namespace lucasdb;
 
 bool do_insert(int64_t key1, int64_t value) {
     // printf("Inserting key: %ld, value: %ld\n", key1, value);
+    if (use_persistant) { // special treatment in server side, the lock is so
+                          // confusing.
+        int tmp = skipList.search(key1);
+        if (tmp == -1)
+            return false;
+    }
     return skipList.insert(key1, (uint32_t)value);
 }
 

@@ -8,7 +8,7 @@ namespace bpt {
 #define BP_ORDER 20
 
 /* key/value type */
-typedef u_int32_t value_t;
+typedef int64_t value_t;
 typedef int64_t key_t;
 
 inline int keycmp(const key_t &a, const key_t &b) {

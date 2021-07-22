@@ -1,14 +1,15 @@
 #include "bpt.h"
 
-#include <stdlib.h>
-
 #include <algorithm>
+#include <iostream>
 #include <list>
+#include <stdlib.h>
 using std::binary_search;
+using std::cout;
+using std::endl;
 using std::lower_bound;
 using std::swap;
 using std::upper_bound;
-
 namespace bpt {
 
 /* custom compare operator for STL algorithms */
@@ -151,7 +152,7 @@ int bplus_tree::remove(const key_t &key) {
     record_t *to_delete = find(leaf, key);
     std::copy(to_delete + 1, end(leaf), to_delete);
     leaf.n--;
-
+    // cout << "[BPT] node deleted: " << key << endl;
     // merge or borrow
     if (leaf.n < min_n) {
         // first borrow from left
@@ -210,9 +211,9 @@ int bplus_tree::insert(const key_t &key, value_t value) {
     map(&leaf, offset);
 
     // check if we have the same key
-    if (binary_search(begin(leaf), end(leaf), key))
+    if (binary_search(begin(leaf), end(leaf), key)) {
         return 1;
-
+    }
     if (leaf.n == meta.order) {
         // split when full
 
