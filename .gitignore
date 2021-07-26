@@ -4,3 +4,6 @@
 skiplist
 client
 *.out
+client_multi
+skiplist
+skiplist_multi

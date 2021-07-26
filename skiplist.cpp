@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 using namespace SL;
-static constexpr bool use_persistant = true;
+static constexpr bool use_persistant = false;
 SkipList<int64_t, uint32_t> skipList(25, use_persistant);
 using namespace lucasdb;
 
@@ -24,7 +24,7 @@ bool do_insert(int64_t key1, int64_t value) {
     if (use_persistant) { // special treatment in server side, the lock is so
                           // confusing.
         int tmp = skipList.search(key1);
-        if (tmp == -1)
+        if (tmp != -1)
             return false;
     }
     return skipList.insert(key1, (uint32_t)value);

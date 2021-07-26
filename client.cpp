@@ -146,9 +146,7 @@ void recv_cb(EV_P_ ev_io *w, int revents) {
         perror("server might close");
     } else {
         reply.ParseFromArray(&rbuf, sizeof(rbuf));
-        // printf("[DEBUG] Reading reply value_len=%u "
-        //        "result=%d\n",
-        //        reply.values().size(), reply.result());
+
         if (!quiet_mode) {
             printf("Query ");
             if (reply.result() == true) {

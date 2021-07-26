@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 #define STORE_FILE "mdump"
-#define MAX_RECORD_COUNT 10
+#define MAX_RECORD_COUNT 70000000
 using namespace std;
 using namespace bpt;
 namespace SL {
@@ -216,7 +216,7 @@ template <typename K, typename V> bool SkipList<K, V>::remove(K key) {
     bool stat = false;
     mtx.lock();
     if (flag_storage) {
-        storage->update(key, -19999);
+        storage->update(key, -1);
         storage_map[key] = false;
         stat = true;
     }
@@ -320,7 +320,7 @@ template <typename K, typename V> int SkipList<K, V>::search(K key) {
         return current->get_value();
     }
     if (flag_storage) {
-        value_t v;
+        value_t v = -1;
         if (storage->search(key, &v) != -1) {
             if (v >= 0) {
                 load(key);
