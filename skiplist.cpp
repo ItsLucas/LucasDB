@@ -12,7 +12,7 @@
 #include <unistd.h>
 using namespace SL;
 static constexpr bool use_persistant = false;
-SkipList<int64_t, uint32_t> skipList(25, use_persistant);
+SkipList<int64_t, uint32_t> skipList(32, use_persistant);
 using namespace lucasdb;
 
 //
@@ -134,9 +134,8 @@ class EchoInstance {
             // Send message back to the client
             DBRequest req;
             req.ParsePartialFromArray(&buffer, sizeof(buffer));
-            // printf("[DEBUG] pBuf op=%d key1=%lld key2=%u value=%u
-            // result=%d\n",
-            //        req.op(), req.key1(), req.key2());
+            // printf("[DEBUG] pBuf op=%d key1=%lld key2=%u\n", req.op(),
+            //        req.key1(), req.key2());
             DBReply reply;
             switch (req.op()) {
             case OP_INSERT: {

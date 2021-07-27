@@ -2,6 +2,7 @@
 #define SKIPLIST_H
 #include "bpt.h"
 #include "node.h"
+#include <boost/random.hpp>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -61,6 +62,7 @@ template <typename K, typename V> class SkipList {
     std::mutex mtx;
     std::mutex mtx2;
     std::string delimiter = ":";
+    boost::random::taus88 rng;
 };
 
 template <typename K, typename V>
@@ -450,11 +452,10 @@ template <typename K, typename V> SkipList<K, V>::~SkipList() {
 
 template <typename K, typename V> int SkipList<K, V>::toll() {
     int k = 1;
-    while (rand() % 2) {
+    while ((rng() & 0xFFFF) < (0.5 * 0xFFFF)) {
         k++;
     }
-    k = (k < max_level) ? k : max_level;
-    return k;
+    return (k < max_level) ? k : max_level;
 };
 } // namespace SL
 #endif

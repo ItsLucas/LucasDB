@@ -9,7 +9,7 @@ using namespace SL;
 boost::random::uniform_int_distribution<> vdist(1, 100000000);
 boost::random::taus88 vgen; // value generator
 static constexpr bool use_persistant = false;
-SkipList<int64_t, uint32_t> skipList(25, use_persistant);
+SkipList<int64_t, uint32_t> skipList(32, use_persistant);
 using namespace lucasdb;
 bool do_insert(int64_t key1, int64_t value) {
     // printf("Inserting key: %ld, value: %ld\n", key1, value);
