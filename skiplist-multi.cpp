@@ -1,10 +1,13 @@
 #include "LucasDB.pb.h"
 #include "skiplist.h"
+#include <boost/random.hpp>
 #include <evpp/buffer.h>
 #include <evpp/event_loop_thread_pool.h>
 #include <evpp/tcp_conn.h>
 #include <evpp/tcp_server.h>
 using namespace SL;
+boost::random::uniform_int_distribution<> vdist(1, 100000000);
+boost::random::taus88 vgen; // value generator
 static constexpr bool use_persistant = false;
 SkipList<int64_t, uint32_t> skipList(25, use_persistant);
 using namespace lucasdb;
@@ -36,11 +39,11 @@ void do_get(int64_t key1, DBReply &reply) {
 }
 using namespace std::chrono;
 void slap_db(int64_t sz, unsigned int seed) {
-    srand(seed);
+    vgen.seed(seed);
     printf("Begin slapping database with %ld entries\n", sz);
     auto start = high_resolution_clock::now();
     for (int i = 1; i <= sz; i++) {
-        skipList.insert(i, rand());
+        skipList.insert(i, vdist(vgen));
     }
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
@@ -86,6 +89,12 @@ void OnMessage(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) {
     case OP_RANDINIT: {
         reply.set_result(true);
         slap_db(req.key1(), req.key2());
+        break;
+    }
+    case OP_MUL2: {
+        do_get(req.key1(), reply);
+        if (reply.result())
+            do_update(req.key1(), reply.values(0) * 2);
         break;
     }
     case OP_ERROR: {
