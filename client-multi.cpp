@@ -4,6 +4,7 @@
 #include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +29,7 @@ boost::random::uniform_int_distribution<> kdist(1, 20000000);
 boost::random::taus88 vgen; // value generator
 boost::random::taus88 sgen; // sequence generator
 boost::random::taus88 rgen; // range generator
-
+boost::random::taus88 ggen;
 int retval[MAX_CHILD_CNT];
 void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents);
 void recv_cb(EV_P_ ev_io *w, int revents);
@@ -36,7 +37,7 @@ int counter;
 // Generate next DBRequest
 void next(DBRequest &req) {
     counter++;
-    if (counter % 1000000 == 0)
+    if (counter % 100000 == 0)
         printf("%d\n", counter);
     int nextop = dist(sgen); // 0 1 2 3
     req.set_op(nextop);
@@ -68,7 +69,7 @@ void next(DBRequest &req) {
     default:
         break;
     }
-    if (counter > 6000000) {
+    if (counter > 500000) {
         req.set_op(OP_ERROR);
     }
 }
@@ -125,7 +126,13 @@ int main(int argc, char *argv[]) {
                 bcopy((char *)server->h_addr, (char *)&addr.sin_addr.s_addr,
                       server->h_length);
                 addr.sin_port = htons(atoi("8192"));
-
+                int flag = 1;
+                int ret = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY,
+                                     (char *)&flag, sizeof(flag));
+                if (ret == -1) {
+                    printf("Couldn't setsockopt(TCP_NODELAY)\n");
+                    exit(-1);
+                }
                 // Connect to server socket
                 if (connect(sd, (struct sockaddr *)&addr, sizeof addr) < 0) {
                     perror("Connect error");
@@ -158,7 +165,14 @@ int main(int argc, char *argv[]) {
 DBRequest req;
 void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents) {
     char sbuf[1024];
-    for (int i = 1; i <= 2; i++) {
+    if (ggen() % 2) {
+        next(req);
+        req.SerializeToArray(&sbuf, sizeof(sbuf));
+        send(sd, &sbuf, sizeof(sbuf), 0);
+    } else {
+        next(req);
+        req.SerializeToArray(&sbuf, sizeof(sbuf));
+        send(sd, &sbuf, sizeof(sbuf), 0);
         next(req);
         req.SerializeToArray(&sbuf, sizeof(sbuf));
         send(sd, &sbuf, sizeof(sbuf), 0);

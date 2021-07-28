@@ -58,12 +58,15 @@ vector<uint32_t> do_range(int64_t key1, int64_t key2) {
 }
 int counter = 0;
 void OnMessage(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) {
+    // conn->SetTCPNoDelay(true);
     DBRequest req;
-
+    int cnt = msg->size() / 1024;
     // LOG_INFO << "tid=" << std::this_thread::get_id()
-    //          << " Received a message len=" << msg->size();
-
-    for (int i = 0; i < msg->size(); i += 1024) {
+    //          << " Received a message len=" << msg->size() << " Contains " <<
+    //          cnt
+    //          << " packets";
+    for (int i = 0; i < cnt; i++) {
+        // cout << i << endl;
         counter++;
         req.ParseFromArray(msg->Next(1024).data(), 1024);
         // printf("[DEBUG] pBuf op=%d key1=%lld key2=%u\n", req.op(),
@@ -109,7 +112,6 @@ void OnMessage(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) {
         }
         case OP_ERROR: {
             reply.set_result(false);
-            LOG_INFO << counter << endl;
             conn->Close();
             return;
             break;
@@ -122,7 +124,7 @@ void OnMessage(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) {
         conn->Send(sendbuf.data(), sendbuf.size());
         sendbuf.Reset();
     }
-    msg->Truncate(1024);
+    msg->Reset();
 }
 
 int main(int argc, char *argv[]) {

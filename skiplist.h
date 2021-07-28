@@ -27,7 +27,6 @@ template <typename K, typename V> class SkipList {
 
     Node<K, V> *alloc(K, V, int);
     bool insert(K, V);
-    void print();
     int search(K);
     bool remove(K);
     bool update(K, V);
@@ -131,18 +130,6 @@ bool SkipList<K, V>::insert(const K key, const V value) {
     }
     mtx.unlock();
     return true;
-}
-
-template <typename K, typename V> void SkipList<K, V>::print() {
-    // for (int i = 0; i <= current_level; i++) {
-    //   Node<K, V> *node = this->head->forward[i];
-    //   std::cout << "Level " << i << ": ";
-    //   while (node != NULL) {
-    //     std::cout << node->get_key() << ":" << node->get_value() << ";";
-    //     node = node->forward[i];
-    //   }
-    //   std::cout << std::endl;
-    // }
 }
 
 template <typename K, typename V> void SkipList<K, V>::unload() {

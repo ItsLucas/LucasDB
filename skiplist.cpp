@@ -5,13 +5,14 @@
 #include <fcntl.h>
 #include <list>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <resolv.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 using namespace SL;
-static constexpr bool use_persistant = false;
+static constexpr bool use_persistant = true;
 SkipList<int64_t, uint32_t> skipList(32, use_persistant);
 using namespace lucasdb;
 

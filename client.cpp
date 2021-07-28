@@ -5,6 +5,7 @@
 #include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -135,7 +136,13 @@ int main(int argc, char *argv[]) {
     bcopy((char *)server->h_addr, (char *)&addr.sin_addr.s_addr,
           server->h_length);
     addr.sin_port = htons(atoi(argv[2]));
-
+    int flag = 1;
+    int ret =
+        setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag));
+    if (ret == -1) {
+        printf("Couldn't setsockopt(TCP_NODELAY)\n");
+        exit(-1);
+    }
     // Connect to server socket
     if (connect(sd, (struct sockaddr *)&addr, sizeof addr) < 0) {
         perror("Connect error");
