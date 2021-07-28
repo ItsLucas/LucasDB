@@ -37,6 +37,7 @@ ofstream fp_rep;
 int counter;
 int num;
 void next(DBRequest &req) {
+    req.Clear();
     counter++;
     int nextop = dist(sgen); // 0 1 2 3
     req.set_op(nextop);
@@ -219,6 +220,7 @@ void stdin_cb(struct ev_loop *loop, ev_io *w, int revents) {
         if (!log_mode)
             exit(0);
     } else {
+        request.Clear();
         request.set_op(a);
         request.set_key1(b);
         request.set_key2(c);
@@ -253,6 +255,7 @@ void recv_cb(EV_P_ ev_io *w, int revents) {
         perror("read error");
     } else if (read == 0) {
         // it will result in dead loop if we don't stop ev loop
+        fp_rep.flush();
         ev_break(EV_A_ EVBREAK_ALL);
         close(sd);
         perror("server might close");

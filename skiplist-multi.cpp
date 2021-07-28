@@ -19,11 +19,11 @@ bool do_insert(int64_t key1, int64_t value) {
         if (tmp != -1)
             return false;
     }
-    return skipList.insert(key1, (uint32_t)value);
+    return skipList.insert(key1, value);
 }
 
 bool do_update(int64_t key1, int64_t value) {
-    return skipList.update(key1, (uint32_t)value);
+    return skipList.update(key1, value);
 }
 
 bool do_delete(int64_t key1) { return skipList.remove(key1); }
@@ -56,61 +56,73 @@ void slap_db(int64_t sz, unsigned int seed) {
 vector<uint32_t> do_range(int64_t key1, int64_t key2) {
     return skipList.range(key1, key2);
 }
+int counter = 0;
 void OnMessage(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) {
     DBRequest req;
-    req.ParsePartialFromArray(msg->data(), sizeof(msg->data()));
-    DBReply reply;
-    char buff[1024];
-    evpp::Buffer sendbuf;
-    switch (req.op()) {
-    case OP_INSERT: {
-        reply.set_result(do_insert(req.key1(), req.key2()));
-        break;
-    }
-    case OP_UPDATE: {
-        reply.set_result(do_update(req.key1(), req.key2()));
-        break;
-    }
-    case OP_DELETE: {
-        reply.set_result(do_delete(req.key1()));
-        break;
-    }
-    case OP_GET: {
-        do_get(req.key1(), reply);
-        break;
-    }
-    case OP_RANGE: {
-        reply.set_result(true);
-        for (auto &i : do_range(req.key1(), req.key2())) {
-            reply.add_values(i);
+
+    // LOG_INFO << "tid=" << std::this_thread::get_id()
+    //          << " Received a message len=" << msg->size();
+
+    for (int i = 0; i < msg->size(); i += 1024) {
+        counter++;
+        req.ParseFromArray(msg->Next(1024).data(), 1024);
+        // printf("[DEBUG] pBuf op=%d key1=%lld key2=%u\n", req.op(),
+        // req.key1(),
+        //        req.key2());
+        DBReply reply;
+        char buff[1024];
+        evpp::Buffer sendbuf;
+        switch (req.op()) {
+        case OP_INSERT: {
+            reply.set_result(do_insert(req.key1(), req.key2()));
+            break;
         }
-        break;
+        case OP_UPDATE: {
+            reply.set_result(do_update(req.key1(), req.key2()));
+            break;
+        }
+        case OP_DELETE: {
+            reply.set_result(do_delete(req.key1()));
+            break;
+        }
+        case OP_GET: {
+            do_get(req.key1(), reply);
+            break;
+        }
+        case OP_RANGE: {
+            reply.set_result(true);
+            for (auto &i : do_range(req.key1(), req.key2())) {
+                reply.add_values(i);
+            }
+            break;
+        }
+        case OP_RANDINIT: {
+            reply.set_result(true);
+            slap_db(req.key1(), req.key2());
+            break;
+        }
+        case OP_MUL2: {
+            do_get(req.key1(), reply);
+            if (reply.result())
+                do_update(req.key1(), reply.values(0) * 2);
+            break;
+        }
+        case OP_ERROR: {
+            reply.set_result(false);
+            LOG_INFO << counter << endl;
+            conn->Close();
+            return;
+            break;
+        }
+        default:
+            break;
+        }
+        reply.SerializePartialToArray(&buff, sizeof(buff));
+        sendbuf.Append(&buff, sizeof(buff));
+        conn->Send(sendbuf.data(), sendbuf.size());
+        sendbuf.Reset();
     }
-    case OP_RANDINIT: {
-        reply.set_result(true);
-        slap_db(req.key1(), req.key2());
-        break;
-    }
-    case OP_MUL2: {
-        do_get(req.key1(), reply);
-        if (reply.result())
-            do_update(req.key1(), reply.values(0) * 2);
-        break;
-    }
-    case OP_ERROR: {
-        reply.set_result(false);
-        conn->Close();
-        return;
-        break;
-    }
-    default:
-        break;
-    }
-    reply.SerializePartialToArray(&buff, sizeof(buff));
-    sendbuf.Append(&buff, sizeof(buff));
-    conn->Send(sendbuf.data(), sendbuf.size());
-    sendbuf.Reset();
-    msg->Reset();
+    msg->Truncate(1024);
 }
 
 int main(int argc, char *argv[]) {

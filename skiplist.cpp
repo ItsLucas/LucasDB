@@ -20,7 +20,7 @@ using namespace lucasdb;
 //
 
 bool do_insert(int64_t key1, int64_t value) {
-    // printf("Inserting key: %ld, value: %ld\n", key1, value);
+    printf("Inserting key: %ld, value: %ld\n", key1, value);
     if (use_persistant) { // special treatment in server side, the lock is so
                           // confusing.
         int tmp = skipList.search(key1);

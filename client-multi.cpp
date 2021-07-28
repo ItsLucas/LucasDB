@@ -36,6 +36,8 @@ int counter;
 // Generate next DBRequest
 void next(DBRequest &req) {
     counter++;
+    if (counter % 1000000 == 0)
+        printf("%d\n", counter);
     int nextop = dist(sgen); // 0 1 2 3
     req.set_op(nextop);
     switch (nextop) {
@@ -156,7 +158,7 @@ int main(int argc, char *argv[]) {
 DBRequest req;
 void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents) {
     char sbuf[1024];
-    for (int i = 1; i <= 1000; i++) {
+    for (int i = 1; i <= 2; i++) {
         next(req);
         req.SerializeToArray(&sbuf, sizeof(sbuf));
         send(sd, &sbuf, sizeof(sbuf), 0);

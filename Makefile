@@ -6,3 +6,4 @@ all:
 	g++ $(FLAGS) -lev LucasDB.pb.cc client.cpp -o client
 	g++ $(FLAGS) bpt.cc LucasDB.pb.cc skiplist-multi.cpp -o skiplist_multi 
 	g++ $(FLAGS) -lev LucasDB.pb.cc client-multi.cpp -o client_multi
+	g++ $(FLAGS) -lev bpt.cc LucasDB.pb.cc skiplist.cpp -o skiplist
